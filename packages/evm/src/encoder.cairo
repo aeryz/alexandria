@@ -489,10 +489,10 @@ pub impl EVMTypesImpl of AbiEncodeTrait {
                     value_index += 1;
                 },
                 EVMTypes::Bytes32 => {
-                    encode_bytes32_u256(
-                        ref self, *values.at(value_index), *values.at(value_index + 1),
+                    encode_bytes32(
+                        ref self, values.slice(value_index, 4),
                     );
-                    value_index += 2;
+                    value_index += 4;
                 },
                 EVMTypes::Bytes => {
                     let consumed = encode_bytes(
@@ -787,9 +787,12 @@ fn encode_bytes(ref ctx: EVMCalldata, values: Span<felt252>) -> usize {
 }
 
 /// Encodes a 32-byte value into calldata from two felt252 values representing a u256.
-fn encode_bytes32_u256(ref ctx: EVMCalldata, low: felt252, high: felt252) {
-    let u256_value = u256 { low: low.try_into().unwrap(), high: high.try_into().unwrap() };
-    write_u256(ref ctx.calldata, u256_value);
+fn encode_bytes32(ref ctx: EVMCalldata, bytes: Span<felt252>) {
+    let mut value: u256 = (*bytes.at(1)).into();
+    value = OptBitShift::shl(value, 8);
+    let byte: u256 = (*bytes.at(2)).try_into().unwrap();
+    value = value | byte;
+    write_u256(ref ctx.calldata, value);
 }
 
 /// Encodes fixed-length bytes into calldata.
